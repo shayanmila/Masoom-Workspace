@@ -1,25 +1,20 @@
 # Masoom Workspace — Roadmap
 
-## Phase 1: Private foundation
-- [x] Monorepo scaffolding: Next.js, Rust agent and PostgreSQL schema
-- [x] Reserve per-company SaaS plan fields (billing disabled)
-- [x] Manual-only GitHub Actions validation
-- [ ] Private Supabase project provisioning and applying migrations 0001 + 0002
-- [x] Invitation-based authentication UI and admin invitation endpoint (requires Supabase configuration and testing)
-- [x] Admin dashboard with member directory and team creation (team assignment and edits pending)
-- [ ] Tenant-isolation security validation
+## Phase 1 — Private foundation
+- [x] Next.js dashboard scaffold and Rust agent scaffold
+- [x] Manual-only GitHub Actions workflow
+- [x] Shared Supabase inspection and schema-collision review
+- [x] Isolated workspace migration prepared with deny-by-default permissions
+- [x] Post-install verification SQL prepared
+- [ ] Backup confirmed and schema migration applied by project owner
+- [ ] RLS / privilege verification against actual database
+- [ ] Server-only owner allowlist and onboarding endpoints
+- [ ] Tenant-scoped team/member APIs and tests
+- [ ] Secure invitation flow with existing Auth account handling
+- [ ] Live dashboard connected
 
-## Phase 2: Transparent desktop work tracking
-- On-duty/off-duty switch with clear employee-facing status
-- Windows app activity / active-idle summaries, without collecting keystrokes or private messages
-- Durable encrypted transport, local SQLite offline queue, deduplication and retry
-- Attendance, breaks and employee-accessible activity timeline
-
-## Phase 3: Collaboration
-- Real-time group chat, private messages and notifications
-- Team-level permissions and task assignments
-- Reports and export
-
-## Future SaaS
-- Multi-company signup, self-service plans, paid subscriptions, seat limits
-- Billing remains disabled until explicitly enabled after security testing
+## Later
+- Team chat and task management
+- Explicit on-duty attendance and work activity summaries
+- Lightweight Windows offline queue and sync
+- Future subscriptions (billing disabled)
