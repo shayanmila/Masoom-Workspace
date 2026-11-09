@@ -22,6 +22,7 @@ export default function Home() {
   const [teamName, setTeamName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('employee');
+  const sharedMode = process.env.NEXT_PUBLIC_SHARED_SUPABASE_MODE !== 'false';
   const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   const refresh = useCallback(async () => {
     if (!configured) { setLoading(false); return; }
@@ -77,6 +78,7 @@ export default function Home() {
       setMessage(data.message || 'Invitation sent'); setInviteEmail(''); await refresh();
     } catch (err) { setMessage(err instanceof Error ? err.message : 'Invitation failed'); }
   }
+  if (sharedMode) return <main style={{maxWidth:850,margin:'70px auto',padding:28,fontFamily:'system-ui'}}><h1>Masoom Workspace</h1><p>Shared Supabase integration is awaiting a read-only database inspection and security review.</p><p>Easy Authenticator remains untouched. Workspace login, invitations, company creation and monitoring are disabled until safe server endpoints are ready.</p><a href='/shared-project'>View setup status</a></main>;
   return <main style={{maxWidth:1100,margin:'auto',padding:'36px 20px'}}>
     <header style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:16,flexWrap:'wrap',marginBottom:36}}>
       <strong style={{fontSize:25,color:'#643bb7'}}>Masoom Workspace</strong>
