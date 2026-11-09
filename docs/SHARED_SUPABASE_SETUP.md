@@ -1,25 +1,28 @@
-# Shared Supabase installation — Easy Authenticator stays unchanged
+# Masoom Workspace + Easy Authenticator — shared Supabase project
 
-Project: `uuvqawlqcnrcdribwava`.
+Project: `uuvqawlqcnrcdribwava`. Existing Easy Authenticator `public.encrypted_vaults` is unchanged.
 
-## Inspection completed
-The user supplied table metadata showing `public.encrypted_vaults` with RLS enabled, and confirmed that `masoom_workspace` does not exist. This is metadata inspection, not an access-control audit.
+## Completed by project owner
+- Workspace migration executed successfully (reported).
+- Schema USAGE verified: anon=false, authenticated=false, service_role=true.
+- Easy Authenticator vault RLS remained enabled.
+- Nine Workspace table RLS values have **not yet been shared**.
 
-## Before executing SQL
-1. Ensure you have a tested database backup or snapshot and understand how to restore it.
-2. Review `packages/database/shared-project/01_workspace_schema_REVIEW_ONLY.sql` fully. It creates only new objects under `masoom_workspace`, rejects an existing schema, grants only `service_role` access, enables RLS and contains no direct end-user policies.
-3. Confirm the target SQL Editor is the Easy Authenticator project. Execute the migration **once** after approval. PostgreSQL transaction rolls back on errors.
-4. Run `02_verify_after_install.sql` and confirm nine new tables, RLS true on all, anon/authenticated schema access false, service schema access true, and `public.encrypted_vaults` RLS true.
-5. Do not add `masoom_workspace` to Supabase's exposed schemas. Do not change existing Auth configuration.
+## Required before administrator sign-in
+1. Run first SELECT from `02_verify_after_install.sql` separately; confirm nine tables and RLS=true.
+2. Review `03_verify_and_owner_bootstrap_README.md`, then run `03_owner_bootstrap_TEMPLATE.sql` only after replacing the placeholder with the correct dedicated/approved auth.users UUID.
+3. Configure `WORKSPACE_DATABASE_URL` in the server environment using a database connection URI with appropriate restricted database privileges. The current starter uses direct PostgreSQL and does NOT require exposing the Workspace schema via PostgREST. Avoid using an unrestricted database owner account in production; implement a dedicated DB role before deployment.
+4. Configure public Supabase URL and anon/publishable key in web env. Do not commit credentials.
+5. Run manual build validation; test unauthorized Easy Authenticator users, approved owner, non-admin, cross-company access.
 
-## Application activation still blocked
-The dashboard deliberately displays a shared-project setup gate. The earlier public-schema company RPC and invite endpoint are incompatible and must not be enabled. Next implement protected server routes using service_role only after verifying user JWT and explicit `approved_users` plus company membership. Existing Easy Authenticator accounts must never automatically gain workspace access.
+## Architecture
+- Frontend uses shared Supabase Auth only for sign-in.
+- Server verifies bearer token with Supabase Auth `getUser`.
+- Server connects directly to PostgreSQL, checks `masoom_workspace.approved_users` and company membership.
+- Server returns tenant-scoped records. No schema API exposure required.
+- Admin team creation is parameterized and requires owner/admin role.
+- Invitations are intentionally disabled pending additional validation.
+- Billing and Windows monitoring remain disabled.
 
-## Credentials
-Set URL and anon key in web deployment; keep the service-role key server-only. Do not paste any key in chat, GitHub, screenshots or client-side code.
-
-## Legacy migrations
-Never apply `packages/database/migrations/0001_foundation.sql` or `0002_private_setup.sql` to the shared project. Those are legacy standalone prototypes.
-
-## Billing
-Company plan table is a placeholder only. A check constraint enforces `billing_enabled=false`.
+## Legacy warning
+Do not apply `packages/database/migrations/0001_foundation.sql` or `0002_private_setup.sql` to this shared project.
