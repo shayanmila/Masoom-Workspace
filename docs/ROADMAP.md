@@ -4,9 +4,9 @@
 - [x] Monorepo scaffolding: Next.js, Rust agent and PostgreSQL schema
 - [x] Reserve per-company SaaS plan fields (billing disabled)
 - [x] Manual-only GitHub Actions validation
-- [ ] Private Supabase project provisioning and migrations
-- [ ] Invitation-based authentication, roles and permissions
-- [ ] Admin dashboard with employee and team management
+- [ ] Private Supabase project provisioning and applying migrations 0001 + 0002
+- [x] Invitation-based authentication UI and admin invitation endpoint (requires Supabase configuration and testing)
+- [x] Admin dashboard with member directory and team creation (team assignment and edits pending)
 - [ ] Tenant-isolation security validation
 
 ## Phase 2: Transparent desktop work tracking
