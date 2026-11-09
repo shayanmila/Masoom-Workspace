@@ -1,6 +1,7 @@
 'use client';
 import { useEffect,useState,type FormEvent } from 'react';
 import { browserClient } from '../lib/supabase';
+import Link from 'next/link';
 import type { Session } from '@supabase/supabase-js';
 type Overview={company:{id:string;name:string};role:string;members:{user_id:string;role:string}[];teams:{id:string;name:string}[];billingEnabled:boolean;activitySyncEnabled:boolean};
 const card:React.CSSProperties={background:'#fff',border:'1px solid #e7e7f2',borderRadius:16,padding:24,marginBottom:18};
@@ -41,7 +42,7 @@ export default function Home(){
    <strong style={{fontSize:25,color:'#653bb8'}}>Masoom Workspace</strong><span style={{background:'#eee8fb',color:'#58349d',padding:'8px 14px',borderRadius:24}}>Private · Phase 1</span>
   </header>
   {!configured?<section style={card}><h1>Setup required</h1><p>Configure Supabase credentials and server-side Workspace database connection. See docs/SHARED_SUPABASE_SETUP.md.</p></section>:
-   !session?<section style={{...card,maxWidth:460,margin:'50px auto'}}><h1>Workspace sign-in</h1><p>Invite-only. Existing Easy Authenticator accounts are not automatically approved.</p><form onSubmit={signIn} style={{display:'grid',gap:14}}><label>Email<input type="email" required style={input} value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Password<input type="password" required style={input} value={password} onChange={e=>setPassword(e.target.value)}/></label><button style={button}>Sign in</button></form></section>:
+   !session?<section style={{...card,maxWidth:460,margin:'50px auto'}}><h1>Workspace sign-in</h1><p>Invite-only. Existing Easy Authenticator accounts are not automatically approved.</p><form onSubmit={signIn} style={{display:'grid',gap:14}}><label>Email<input type="email" required style={input} value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Password<input type="password" required style={input} value={password} onChange={e=>setPassword(e.target.value)}/></label><button style={button}>Sign in</button><Link href="/forgot-password" style={{color:'#653bb8'}}>Forgot password?</Link></form></section>:
    overview?<><section style={card}><h1 style={{marginTop:0}}>{overview.company.name}</h1><p>Signed in as {session.user.email} · {overview.role}</p><button style={{...button,background:'#e9e9f2',color:'#273149'}} onClick={()=>void browserClient().auth.signOut()}>Sign out</button></section>
    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:16}}>
     {[['Employees',overview.members.length],['Teams',overview.teams.length],['Billing','Disabled'],['Activity sync','Disabled']].map(([label,value])=><section key={label} style={card}><p>{label}</p><strong style={{fontSize:27}}>{value}</strong></section>)}
