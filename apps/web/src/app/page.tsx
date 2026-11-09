@@ -1,0 +1,9 @@
+const features = [
+  {title:'People & Roles',text:'Invite-only membership, admins, managers and employees.'},
+  {title:'Teams & Chat',text:'Organize teams and membership-controlled group discussions.'},
+  {title:'Tasks & Attendance',text:'Assign work, track status and opt-in work sessions.'},
+  {title:'Activity & Reports',text:'Work-session summaries with transparent employee controls.'},
+  {title:'Offline Agent',text:'Planned resilient sync with local queue and retries.'},
+  {title:'Future SaaS',text:'Subscription and seat models reserved; billing is disabled.'}
+];
+export default function Home(){return <main style={{maxWidth:1120,margin:'auto',padding:'44px 24px'}}><header style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><strong style={{fontSize:24,color:'#6338b6'}}>Masoom Workspace</strong><span style={{background:'#e8e1fb',padding:'8px 14px',borderRadius:20,color:'#512e91'}}>Private development preview</span></header><section style={{padding:'76px 0 45px'}}><p style={{color:'#6a46ad',fontWeight:700}}>ONE PLACE FOR YOUR COMPANY</p><h1 style={{fontSize:'clamp(32px,5vw,56px)',maxWidth:750,lineHeight:1.1}}>Manage your people, teams and work in one secure workspace.</h1><p style={{fontSize:18,color:'#647084',maxWidth:700,lineHeight:1.6}}>Phase 1 foundation preview. Authentication, real-time data and desktop activity collection are not yet enabled.</p></section><section style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(250px,1fr))',gap:16}}>{features.map(x=><article key={x.title} style={{background:'white',border:'1px solid #e5e8ef',borderRadius:16,padding:24,boxShadow:'0 5px 24px #20204008'}}><h2 style={{fontSize:19,marginTop:0}}>{x.title}</h2><p style={{color:'#65718a',lineHeight:1.55}}>{x.text}</p></article>)}</section><footer style={{marginTop:50,color:'#718096'}}>© MasoomDev · Internal development · No billing enabled</footer></main>}
