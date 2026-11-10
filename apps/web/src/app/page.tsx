@@ -12,6 +12,7 @@ export default function Home(){
  const [session,setSession]=useState<Session|null>(null);
  const [overview,setOverview]=useState<Overview|null>(null);
  const [status,setStatus]=useState('Loading…');
+ const [busyTeam,setBusyTeam]=useState<string|null>(null);
  const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [teamName,setTeamName]=useState('');
  async function load(s:Session|null){
    setSession(s);setOverview(null);
@@ -45,6 +46,29 @@ export default function Home(){
   const data=await res.json();if(!res.ok){setStatus(data.error||'Failed to create team');return;}
   setTeamName('');await load(session);
  }
+ async function manageTeam(id:string,action:'rename'|'delete',currentName:string){
+  if(!session||busyTeam)return;
+  let name:string|undefined;
+  if(action==='rename'){
+   const answer=window.prompt('New team name',currentName);
+   if(answer===null)return;
+   name=answer.trim();
+   if(!name||name.length>100){setStatus('Team name must be 1–100 characters.');return;}
+   if(name===currentName)return;
+  }else if(!window.confirm('Delete team "'+currentName+'"? This cannot be undone.'))return;
+  setBusyTeam(id);setStatus('');
+  try{
+   const res=await fetch('/api/teams/'+encodeURIComponent(id),{
+    method:action==='rename'?'PATCH':'DELETE',
+    headers:{Authorization:'Bearer '+session.access_token,...(action==='rename'?{'Content-Type':'application/json'}:{})},
+    ...(action==='rename'?{body:JSON.stringify({name})}:{})
+   });
+   const data=await res.json();
+   if(!res.ok){setStatus(data.error||'Team update failed');return;}
+   await load(session);
+  }catch(error){setStatus(error instanceof Error?error.message:'Team update failed');}
+  finally{setBusyTeam(null);}
+ }
  return <main style={{maxWidth:1080,margin:'auto',padding:'36px 22px',fontFamily:'system-ui,Segoe UI,sans-serif'}}>
   <header style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:16,flexWrap:'wrap',marginBottom:45}}>
    <strong style={{fontSize:25,color:'#653bb8'}}>Masoom Workspace</strong><span style={{background:'#eee8fb',color:'#58349d',padding:'8px 14px',borderRadius:24}}>Private · Phase 1</span>
@@ -54,9 +78,9 @@ export default function Home(){
    overview?<><section style={card}><h1 style={{marginTop:0}}>{overview.company.name}</h1><p>Signed in as {session.user.email} · {overview.role}</p><button style={{...button,background:'#e9e9f2',color:'#273149'}} onClick={()=>void browserClient().auth.signOut()}>Sign out</button></section>
    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:16}}>
     {[['Employees',overview.members.length],['Teams',overview.teams.length],['Billing','Disabled'],['Activity sync','Disabled']].map(([label,value])=><section key={label} style={card}><p>{label}</p><strong style={{fontSize:27}}>{value}</strong></section>)}
-   </div><section style={card}><h2>Members</h2>{overview.members.map(m=><p key={m.user_id} style={{overflowWrap:'anywhere'}}>{m.user_id} — {m.role}</p>)}</section>
-   <section style={card}><h2>Teams</h2>{overview.teams.length?overview.teams.map(t=><p key={t.id}>{t.name}</p>):<p>No teams yet.</p>}
-   {['owner','admin'].includes(overview.role)&&<form onSubmit={createTeam} style={{display:'flex',gap:12,flexWrap:'wrap'}}><input style={{...input,flex:1,minWidth:180}} value={teamName} maxLength={100} required placeholder="Team name" onChange={e=>setTeamName(e.target.value)}/><button style={button}>Add team</button></form>}</section></>:
+   </div><section style={card}><h2>Members</h2>{overview.members.map(m=><p key={m.user_id} style={{overflowWrap:'anywhere'}}>{m.user_id===session.user.id?(session.user.email||'Your account'):m.user_id} — {m.role}</p>)}<p style={{color:'#778298',fontSize:14}}>Other members’ email addresses are not available in the current API.</p></section>
+   <section style={card}><h2>Teams</h2>{overview.teams.length?overview.teams.map(t=><div key={t.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap',padding:'12px 0',borderBottom:'1px solid #eee'}}><strong>{t.name}</strong>{['owner','admin'].includes(overview.role)&&<div style={{display:'flex',gap:8}}><button type="button" disabled={Boolean(busyTeam)} onClick={()=>void manageTeam(t.id,'rename',t.name)} style={{...button,background:'#eee8fb',color:'#58349d',padding:'8px 12px'}}>Rename</button><button type="button" disabled={Boolean(busyTeam)} onClick={()=>void manageTeam(t.id,'delete',t.name)} style={{...button,background:'#fff0f0',color:'#9b2633',padding:'8px 12px'}}>Delete</button></div>}</div>):<p>No teams yet.</p>}
+   {['owner','admin'].includes(overview.role)&&<form onSubmit={createTeam} style={{display:'flex',gap:12,flexWrap:'wrap'}}><input style={{...input,flex:1,minWidth:180}} value={teamName} maxLength={100} required placeholder="Team name" onChange={e=>setTeamName(e.target.value)}/><button style={button}>Add team</button></form>}<p style={{fontSize:14,color:'#778298'}}>Member invitations are not enabled yet; approval and acceptance security checks are required first.</p></section></>:
    <section style={card}><h1>Workspace access pending</h1><p>{status}</p><button style={button} onClick={()=>void browserClient().auth.signOut()}>Sign out</button></section>}
   {session&&overview&&status&&<p role="status">{status}</p>}
   <footer style={{color:'#778298',marginTop:35}}>MasoomDev · Private Workspace · No billing or activity collection enabled</footer>
