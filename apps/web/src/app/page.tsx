@@ -18,10 +18,18 @@ export default function Home(){
    if(!s){setStatus('Sign in with your approved Workspace account.');return;}
    try{
     const res=await fetch('/api/workspace',{headers:{Authorization:'Bearer '+s.access_token},cache:'no-store'});
+    const contentType=res.headers.get('content-type')||'';
+    if(!contentType.toLowerCase().includes('application/json')){
+      setStatus('Workspace API returned HTTP '+res.status+' with a non-JSON response. Check the development server terminal.');
+      return;
+    }
     const data=await res.json();
-    if(!res.ok){setStatus(data.error||'Unable to load workspace');return;}
+    if(!res.ok){setStatus((typeof data.error==='string'?data.error:'Workspace request failed')+' (HTTP '+res.status+')');return;}
     setOverview(data);setStatus('');
-   }catch{setStatus('Could not connect to Workspace backend.');}
+   }catch(error){
+    const detail=error instanceof Error?error.message:'Unknown request error';
+    setStatus('Workspace request failed: '+detail);
+   }
  }
  useEffect(()=>{
    if(!configured){setStatus('Supabase environment variables are not configured.');return;}
