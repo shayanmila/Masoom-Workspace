@@ -90,3 +90,27 @@ export async function addTeam(userId:string, name:string) {
     returning id,name`,[userId,name.trim()]);
   return result.rows[0] ?? null;
 }
+
+export async function renameTeam(userId:string, teamId:string, name:string) {
+  const db=getPool();
+  const result=await db.query<{id:string;name:string}>(`
+    update masoom_workspace.teams t set name=$3
+    where t.id=$2 and exists (
+      select 1 from masoom_workspace.memberships m
+      join masoom_workspace.approved_users a on a.user_id=m.user_id
+      where m.user_id=$1 and m.company_id=t.company_id and m.role in ('owner','admin')
+    ) returning t.id,t.name`,[userId,teamId,name.trim()]);
+  return result.rows[0]??null;
+}
+
+export async function deleteTeam(userId:string, teamId:string) {
+  const db=getPool();
+  const result=await db.query<{id:string}>(`
+    delete from masoom_workspace.teams t
+    where t.id=$2 and exists (
+      select 1 from masoom_workspace.memberships m
+      join masoom_workspace.approved_users a on a.user_id=m.user_id
+      where m.user_id=$1 and m.company_id=t.company_id and m.role in ('owner','admin')
+    ) returning t.id`,[userId,teamId]);
+  return Boolean(result.rows[0]);
+}
