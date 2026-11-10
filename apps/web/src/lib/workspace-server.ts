@@ -77,7 +77,7 @@ export async function getWorkspaceOverview(userId: string) {
       where m.company_id=$1 order by m.joined_at`,[current.company_id]),
     db.query<{id:string;name:string}>(`select id,name from masoom_workspace.teams where company_id=$1 order by name`,[current.company_id])
   ]);
-  return {company:{id:current.company_id,name:current.company_name},role:current.role,members:members.rows,teams:teams.rows,billingEnabled:false,activitySyncEnabled:false};
+  return {company:{id:current.company_id,name:current.company_name},role:current.role,members:members.rows,teams:teams.rows,billingEnabled:false,activitySyncEnabled:false,invitationsEnabled};
 }
 
 export async function addTeam(userId:string, name:string) {
