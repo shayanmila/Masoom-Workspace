@@ -1,25 +1,65 @@
 import 'server-only';
+import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { Pool } from 'pg';
+
 let pool: Pool | undefined;
+
 function getPool() {
-  const connectionString = process.env.WORKSPACE_DATABASE_URL;
-  if (!connectionString) throw new Error('Workspace database connection not configured');
-  return pool ??= new Pool({connectionString, max: 5, connectionTimeoutMillis: 5000, idleTimeoutMillis: 10000, ssl: {rejectUnauthorized: true}});
+  if (pool) return pool;
+  const raw = process.env.WORKSPACE_DATABASE_URL?.trim();
+  if (!raw) throw new Error('Workspace database connection not configured');
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error('Workspace database URL is malformed');
+  }
+  if (!['postgres:', 'postgresql:'].includes(parsed.protocol) || !parsed.hostname || !parsed.username) {
+    throw new Error('Workspace database URL must be a PostgreSQL URI');
+  }
+  // pg-connection-string can override the explicit TLS configuration when
+  // sslmode/sslrootcert appears in the URI. Reject ambiguous configurations.
+  for (const key of ['sslmode', 'sslrootcert', 'sslcert', 'sslkey']) {
+    if (parsed.searchParams.has(key)) {
+      throw new Error('Remove ' + key + ' from WORKSPACE_DATABASE_URL; configure TLS with WORKSPACE_DATABASE_CA_FILE');
+    }
+  }
+
+  const caFile = process.env.WORKSPACE_DATABASE_CA_FILE?.trim();
+  const ssl = caFile
+    ? { rejectUnauthorized: true, ca: readFileSync(caFile, 'utf8') }
+    : { rejectUnauthorized: true };
+
+  pool = new Pool({
+    connectionString: raw,
+    max: 5,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 10000,
+    ssl
+  });
+  pool.on('error', (error) => {
+    // A failed idle connection must not crash the development server.
+    const code = (error as NodeJS.ErrnoException).code ?? 'UNKNOWN';
+    console.error('[Workspace DB] idle connection error code:', code);
+  });
+  return pool;
 }
+
 export async function workspaceIdentity(authorization: string | null) {
   const token = authorization?.match(/^Bearer ([^\s]+)$/i)?.[1];
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!token || !url || !anon) return null;
-  const supabase = createClient(url, anon, {auth:{persistSession:false,autoRefreshToken:false}});
-  const {data:{user},error} = await supabase.auth.getUser(token);
+  const supabase = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) return null;
   return user.id;
 }
+
 export async function getWorkspaceOverview(userId: string) {
   const db = getPool();
-  // Parameterized queries; access requires BOTH explicit approval and company membership.
   const membership = await db.query<{company_id:string;role:string;company_name:string}>(`
     select m.company_id,m.role,c.name as company_name
     from masoom_workspace.memberships m
@@ -38,6 +78,7 @@ export async function getWorkspaceOverview(userId: string) {
   ]);
   return {company:{id:current.company_id,name:current.company_name},role:current.role,members:members.rows,teams:teams.rows,billingEnabled:false,activitySyncEnabled:false};
 }
+
 export async function addTeam(userId:string, name:string) {
   const db = getPool();
   const result=await db.query<{id:string;name:string}>(`
