@@ -1,5 +1,6 @@
 import 'server-only';
 import { readFileSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { Pool } from 'pg';
 
@@ -113,4 +114,55 @@ export async function deleteTeam(userId:string, teamId:string) {
       where m.user_id=$1 and m.company_id=t.company_id and m.role in ('owner','admin')
     ) returning t.id`,[userId,teamId]);
   return Boolean(result.rows[0]);
+}
+
+export const invitationsEnabled = process.env.WORKSPACE_INVITATIONS_ENABLED === 'true';
+
+async function authorizedCompany(userId:string) {
+ const result=await getPool().query<{company_id:string}>(`
+  select m.company_id from masoom_workspace.memberships m
+  join masoom_workspace.approved_users a on a.user_id=m.user_id
+  where m.user_id=$1 and m.role in ('owner','admin')
+  order by m.joined_at asc limit 1`,[userId]);
+ return result.rows[0]?.company_id??null;
+}
+
+export async function listInvitations(userId:string) {
+ if(!invitationsEnabled)return null;
+ const companyId=await authorizedCompany(userId);
+ if(!companyId)return null;
+ const result=await getPool().query<{id:string;email:string;role:string;created_at:string;expires_at:string;revoked_at:string|null;accepted_at:string|null}>(`
+  select id,email,role,created_at,expires_at,revoked_at,accepted_at
+  from masoom_workspace.invitations where company_id=$1
+  order by created_at desc limit 100`,[companyId]);
+ return result.rows;
+}
+
+export async function createInvitation(userId:string,email:string,role:'admin'|'member') {
+ if(!invitationsEnabled)return null;
+ const companyId=await authorizedCompany(userId);
+ if(!companyId)return null;
+ const token=randomBytes(32).toString('base64url');
+ const tokenHash=createHash('sha256').update(token).digest('hex');
+ const db=getPool();
+ // Reject duplicate pending invites and current members without revealing other tenants.
+ const existing=await db.query(`
+  select 1 from masoom_workspace.invitations
+  where company_id=$1 and email=$2 and accepted_at is null and revoked_at is null limit 1`,[companyId,email]);
+ if(existing.rowCount)throw Object.assign(new Error('An invitation for this email already exists. Revoke it before re-inviting.'),{code:'INVITE_EXISTS'});
+ const inserted=await db.query<{id:string;email:string;role:string;expires_at:string}>(`
+  insert into masoom_workspace.invitations(company_id,email,role,token_hash,invited_by)
+  values ($1,$2,$3,$4,$5) returning id,email,role,expires_at`,[companyId,email,role,tokenHash,userId]);
+ return {invitation:inserted.rows[0],token};
+}
+
+export async function revokeInvitation(userId:string,id:string) {
+ if(!invitationsEnabled)return false;
+ const companyId=await authorizedCompany(userId);
+ if(!companyId)return false;
+ const result=await getPool().query(`
+  update masoom_workspace.invitations set revoked_at=now()
+  where id=$1 and company_id=$2 and accepted_at is null and revoked_at is null
+  returning id`,[id,companyId]);
+ return Boolean(result.rowCount);
 }
